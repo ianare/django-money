@@ -23,7 +23,7 @@ Changes in 0.7.6
 ----------------
 - Fix for ``get_or_create`` / ``create`` manager methods not respecting currency code (`Mateusz Mikołajczyk <https://github.com/toudi>`_)
 - Fix unit tests (`Mateusz Mikołajczyk <https://github.com/toudi>`_)
-- Fix for using ``MoneyField`` with ``F`` expressions when using Django >= 1.8 (`Mateusz Mikołajczyk <https://github.com/toudi>`_)
+- Fix for using ``MoneyIntegerField`` with ``F`` expressions when using Django >= 1.8 (`Mateusz Mikołajczyk <https://github.com/toudi>`_)
 - Mention Django 1.9 in tox.ini (`Benjamin Bach <https://github.com/benjaoming>`_)
 - Added correct paths for py.test discovery (`Benjamin Bach <https://github.com/benjaoming>`_)
 
@@ -56,7 +56,7 @@ Changes in 0.7.2
 Changes in 0.7
 --------------
 - Django 1.8 compatibility (`willhcr <https://github.com/willhcr>`_)
-- Fix bug in printing ``MoneyField`` (`Michael Palumbo <https://github.com/YAmikep>`_)
+- Fix bug in printing ``MoneyIntegerField`` (`Michael Palumbo <https://github.com/YAmikep>`_)
 
 Changes in 0.6
 --------------
@@ -65,7 +65,7 @@ Changes in 0.6
 - Improved ``README`` (`Germán Larraín <https://github.com/glarrain>`_)
 - Appends _currency to non-money ExpressionFields `101 <https://github.com/django-money/django-money/issues/101>`_ (`Alex Hayes <https://github.com/alexhayes>`_, `Alex Riina <https://github.com/AlexRiina>`_, `Brian Kung <https://github.com/briankung>`_)
 - Data truncated for column `103 <https://github.com/django-money/django-money/issues/103>`_ (`Alex Hayes <https://github.com/alexhayes>`_)
-- Proxy Model with MoneyField returns wrong class `80 <https://github.com/django-money/django-money/issues/80>`_ (`Luke Plant <https://github.com/spookylukey>`_)
+- Proxy Model with MoneyIntegerField returns wrong class `80 <https://github.com/django-money/django-money/issues/80>`_ (`Luke Plant <https://github.com/spookylukey>`_)
 - Fixed ``has_changed`` not working `95 <https://github.com/django-money/django-money/issues/95>`_ (`Luke Plant <https://github.com/spookylukey>`_)
 - Added/Cleaned up tests (`Luke Plant <https://github.com/spookylukey>`_, `Alex Riina <https://github.com/AlexRiina>`_)
 
@@ -73,8 +73,8 @@ Changes in 0.5
 --------------
 - Django 1.7 compatibility (`François Rejeté <https://github.com/w00kie>`_)
 - Added ``choices=`` to instantiation of currency widget (`David Stockwell <https://github.com/davidstockwell>`_)
-- Nullable ``MoneyField`` should act as ``default=None`` (`Jacob Hansson <https://github.com/jakewins>`_)
-- Fixed bug where a non-required ``MoneyField`` threw an exception (`Luke Plant <https://github.com/spookylukey>`_)
+- Nullable ``MoneyIntegerField`` should act as ``default=None`` (`Jacob Hansson <https://github.com/jakewins>`_)
+- Fixed bug where a non-required ``MoneyIntegerField`` threw an exception (`Luke Plant <https://github.com/spookylukey>`_)
 
 Changes in 0.4
 --------------

@@ -60,12 +60,12 @@ Use as normal model fields
 .. code:: python
 
         import moneyed
-        from djmoney.models.fields import MoneyField
+        from djmoney.models.fields import MoneyIntegerField
         from django.db import models
 
         class BankAccount(models.Model):
 
-            balance = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
+            balance = MoneyIntegerField(max_digits=10, decimal_places=2, default_currency='USD')
 
 Searching for models with money fields:
 
@@ -89,11 +89,11 @@ instead.
 
         from django.core.validators import MinValueValidator
         from django.db import models
-        from djmoney.models.fields import MoneyField, MoneyPatched
+        from djmoney.models.fields import MoneyIntegerField, MoneyPatched
 
         class BankAccount(models.Model):
 
-            balance = MoneyField(max_digits=10, decimal_places=2, validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
+            balance = MoneyIntegerField(max_digits=10, decimal_places=2, validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
 
 
 If you use South to handle model migration, things will "Just Work" out
@@ -153,7 +153,7 @@ your models, but it needs to wrap some of the methods to allow searching
 for models with money values.
 
 This is done automatically for the "objects" attribute in any model that
-uses MoneyField. However, if you assign managers to some other
+uses MoneyIntegerField. However, if you assign managers to some other
 attribute, you have to wrap your manager manually, like so:
 
 .. code:: python
@@ -161,7 +161,7 @@ attribute, you have to wrap your manager manually, like so:
         from djmoney.models.managers import money_manager
         class BankAccount(models.Model):
 
-            balance = MoneyField(max_digits=10, decimal_places=2, default_currency='USD')
+            balance = MoneyIntegerField(max_digits=10, decimal_places=2, default_currency='USD')
 
             accounts = money_manager(MyCustomManager())
 

@@ -41,7 +41,7 @@ else:
     AUTO_CONVERT_MONEY = False
 
 
-__all__ = ('MoneyField', 'NotSupportedLookup')
+__all__ = ('MoneyIntegerField', 'NotSupportedLookup')
 
 SUPPORTED_LOOKUPS = ('exact', 'isnull', 'lt', 'gt', 'lte', 'gte')
 
@@ -52,7 +52,7 @@ class NotSupportedLookup(Exception):
         self.lookup = lookup
 
     def __str__(self):
-        return 'Lookup \'%s\' is not supported for MoneyField' % self.lookup
+        return 'Lookup \'%s\' is not supported for MoneyIntegerField' % self.lookup
 
 
 @deconstructible
@@ -184,10 +184,10 @@ def validate_money_expression(obj, expr):
     rhs = get_value(obj, rhs)
 
     if (not isinstance(rhs, Money) and connector in ('+', '-')) or connector == '^':
-        raise ValidationError('Invalid F expression for MoneyField.', code='invalid')
+        raise ValidationError('Invalid F expression for MoneyIntegerField.', code='invalid')
     if isinstance(lhs, Money) and isinstance(rhs, Money):
         if connector in ('*', '/', '^', '%%'):
-            raise ValidationError('Invalid F expression for MoneyField.', code='invalid')
+            raise ValidationError('Invalid F expression for MoneyIntegerField.', code='invalid')
         if lhs.currency != rhs.currency:
             raise ValidationError('You cannot use F() with different currencies.', code='invalid')
 
@@ -201,7 +201,7 @@ def validate_money_value(value):
     """
     if isinstance(value, (list, tuple)) and (len(value) != 2 or value[1] is None):
         raise ValidationError(
-            'Invalid value for MoneyField: %(value)s.',
+            'Invalid value for MoneyIntegerField: %(value)s.',
             code='invalid',
             params={'value': value},
         )
@@ -256,7 +256,7 @@ class MoneyFieldProxy(object):
         # i.e. if we do the following:
         # .objects.get_or_create(money_currency='EUR')
         # then the currency is already set up, before this code hits
-        # __set__ of MoneyField. This is because the currency field
+        # __set__ of MoneyIntegerField. This is because the currency field
         # has less creation counter than money field.
         object_currency = obj.__dict__[self.currency_field_name]
         default_currency = str(self.field.default_currency)
@@ -275,27 +275,24 @@ class CurrencyField(models.CharField):
             default = default.code
         kwargs['max_length'] = 3
         self.price_field = price_field
-        self.frozen_by_south = kwargs.pop('frozen_by_south', False)
         super(CurrencyField, self).__init__(verbose_name, name, default=default,
                                             **kwargs)
 
     def contribute_to_class(self, cls, name):
-        if not self.frozen_by_south and name not in [f.name for f in cls._meta.fields]:
+        if name not in [f.name for f in cls._meta.fields]:
             super(CurrencyField, self).contribute_to_class(cls, name)
 
 
-class MoneyField(models.DecimalField):
+class MoneyIntegerField(models.IntegerField):
     description = 'A field which stores both the currency and amount of money.'
 
     def __init__(self, verbose_name=None, name=None,
-                 max_digits=None, decimal_places=None,
-                 default=None,
-                 default_currency=DEFAULT_CURRENCY,
+                 default=None, default_currency=DEFAULT_CURRENCY,
                  currency_choices=CURRENCY_CHOICES, **kwargs):
         nullable = kwargs.get('null', False)
         if default is None and not nullable:
             # Backwards compatible fix for non-nullable fields
-            default = 0.0
+            default = 0
 
         if isinstance(default, string_types):
             try:
@@ -316,45 +313,30 @@ class MoneyField(models.DecimalField):
             raise Exception(
                 'default value must be an instance of Money, is: %s' % str(default))
 
-        # Avoid giving the user hard-to-debug errors if they miss required attributes
-        if max_digits is None:
-            raise Exception(
-                'You have to provide a max_digits attribute to Money fields.')
-
-        if decimal_places is None:
-            raise Exception(
-                'You have to provide a decimal_places attribute to Money fields.')
-
         if not default_currency:
             default_currency = default.currency
 
         self.default_currency = default_currency
         self.currency_choices = currency_choices
-        self.frozen_by_south = kwargs.pop('frozen_by_south', False)
 
-        super(MoneyField, self).__init__(verbose_name, name, max_digits,
-                                         decimal_places, default=default,
-                                         **kwargs)
+        super(MoneyIntegerField, self).__init__(verbose_name, name, default=default, **kwargs)
 
     def to_python(self, value):
-        if isinstance(value, Expression):
-            return value
+        #if isinstance(value, Expression):
+        #    return value
         if isinstance(value, Money):
-            value = value.amount
-        if isinstance(value, tuple):
-            value = value[0]
-        if isinstance(value, float):
-            value = str(value)
-        return super(MoneyField, self).to_python(value)
+            value = Decimal(value.amount)
+        elif isinstance(value, float):
+            value = Decimal.from_float(value)
+        elif isinstance(value, str):
+            value = Decimal(value)
+        value = int(value) * 100
+        return super(MoneyIntegerField, self).to_python(value)
 
     def contribute_to_class(self, cls, name):
         cls._meta.has_money_field = True
-
-        if not self.frozen_by_south:
-            self.add_currency_field(cls, name)
-
-        super(MoneyField, self).contribute_to_class(cls, name)
-
+        self.add_currency_field(cls, name)
+        super(MoneyIntegerField, self).contribute_to_class(cls, name)
         setattr(cls, self.name, MoneyFieldProxy(self))
 
     def add_currency_field(self, cls, name):
@@ -362,7 +344,7 @@ class MoneyField(models.DecimalField):
         Adds CurrencyField instance to a model class.
         """
         currency_field = CurrencyField(
-            max_length=3, price_field=self,
+            price_field=self,
             default=self.default_currency, editable=False,
             choices=self.currency_choices
         )
@@ -375,59 +357,36 @@ class MoneyField(models.DecimalField):
         if isinstance(value, Expression):
             return value
         if isinstance(value, Money):
-            value = value.amount
-        return super(MoneyField, self).get_db_prep_save(value, connection)
+            value = int((value.amount * 100) / 100)
+        return super(MoneyIntegerField, self).get_db_prep_save(value, connection)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
         if lookup_type not in SUPPORTED_LOOKUPS:
             raise NotSupportedLookup(lookup_type)
         value = self.get_db_prep_save(value, connection)
-        return super(MoneyField, self).get_db_prep_lookup(lookup_type, value, connection, prepared)
+        return super(MoneyIntegerField, self).get_db_prep_lookup(lookup_type, value, connection, prepared)
 
     def get_default(self):
         if isinstance(self.default, Money):
             frm = inspect.stack()[1]
             mod = inspect.getmodule(frm[0])
-            # We need to return the numerical value if this is called by south
-            if mod.__name__ == 'south.db.generic':
-                return float(self.default.amount)
             return self.default
         else:
-            return super(MoneyField, self).get_default()
+            return super(MoneyIntegerField, self).get_default()
 
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.MoneyField}
         defaults.update(kwargs)
         defaults['currency_choices'] = self.currency_choices
-        return super(MoneyField, self).formfield(**defaults)
-
-    def get_south_default(self):
-        return '%s' % str(self.default)
-
-    def get_south_default_currency(self):
-        return '"%s"' % str(self.default_currency.code)
+        return super(MoneyIntegerField, self).formfield(**defaults)
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
 
-    # # South support
-    def south_field_triple(self):
-        """Returns a suitable description of this field for South."""
-        # Note: This method gets automatically with schemamigration time.
-        from south.modelsinspector import introspector
-        field_class = self.__class__.__module__ + '.' + self.__class__.__name__
-        args, kwargs = introspector(self)
-        # We need to
-        # 1. Delete the default, 'cause it's not automatically supported.
-        kwargs.pop('default')
-        # 2. add the default currency, because it's not picked up from the inspector automatically.
-        kwargs['default_currency'] = "'%s'" % self.default_currency
-        return field_class, args, kwargs
-
-    # # Django 1.7 migration support
+    # Django 1.7 migration support
     def deconstruct(self):
-        name, path, args, kwargs = super(MoneyField, self).deconstruct()
+        name, path, args, kwargs = super(MoneyIntegerField, self).deconstruct()
 
         if self.default is not None:
             kwargs['default'] = self.default.amount
@@ -436,22 +395,6 @@ class MoneyField(models.DecimalField):
         if self.currency_choices != CURRENCY_CHOICES:
             kwargs['currency_choices'] = self.currency_choices
         return name, path, args, kwargs
-
-
-try:
-    from south.modelsinspector import add_introspection_rules
-    rules = [
-        # MoneyField has its own method.
-        ((CurrencyField,),
-         [],  # No positional args
-         {'default': ('default', {'default': DEFAULT_CURRENCY.code}),
-          'max_length': ('max_length', {'default': 3})}),
-    ]
-
-    # MoneyField implement the serialization in south_field_triple method
-    add_introspection_rules(rules, ['^djmoney\.models\.fields\.CurrencyField'])
-except ImportError:
-    pass
 
 
 def patch_managers(sender, **kwargs):

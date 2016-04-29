@@ -419,7 +419,7 @@ def test_manager_instance_access(model_class):
 
 @pytest.mark.skipif(VERSION >= (1, 10), reason='Django >= 1.10 dropped `get_field_by_name` method of `Options`.')
 def test_get_field_by_name():
-    assert BaseModel._meta.get_field_by_name('money')[0].__class__.__name__ == 'MoneyField'
+    assert BaseModel._meta.get_field_by_name('money')[0].__class__.__name__ == 'MoneyIntegerField'
     assert BaseModel._meta.get_field_by_name('money_currency')[0].__class__.__name__ == 'CurrencyField'
 
 

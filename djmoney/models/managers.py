@@ -11,7 +11,7 @@ from moneyed import Money
 
 from .._compat import LOOKUP_SEP, BaseExpression, smart_unicode
 from ..utils import get_currency_field_name, prepare_expression
-from .fields import MoneyField
+from .fields import MoneyIntegerField
 
 
 def _get_clean_name(name):
@@ -84,7 +84,7 @@ def _expand_money_args(model, args):
                         ])
                     if isinstance(value, (BaseExpression, F)):
                         field = _get_field(model, name)
-                        if isinstance(field, MoneyField):
+                        if isinstance(field, MoneyIntegerField):
                             clean_name = _get_clean_name(name)
                             arg.children[i] = Q(*[
                                 child,
@@ -103,7 +103,7 @@ def _expand_money_kwargs(model, kwargs):
             kwargs[name] = value.amount
             kwargs[get_currency_field_name(clean_name)] = smart_unicode(value.currency)
         elif isinstance(value, (BaseExpression, F)) and \
-                isinstance(_get_field(model, name), MoneyField):
+                isinstance(_get_field(model, name), MoneyIntegerField):
             clean_name = _get_clean_name(name)
             if not isinstance(value, F):
                 value = prepare_expression(value)

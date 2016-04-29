@@ -12,7 +12,7 @@ from django.utils import six
 from moneyed import Money
 
 from ._compat import get_fields
-from .models.fields import MoneyField
+from .models.fields import MoneyIntegerField
 from .utils import get_currency_field_name
 
 
@@ -46,7 +46,7 @@ def Deserializer(stream_or_string, **options):  # noqa
                     # skip fields no longer on model
                     continue
                 field = Model._meta.get_field(field_name)
-                if isinstance(field, MoneyField) and field_value is not None:
+                if isinstance(field, MoneyIntegerField) and field_value is not None:
                     money_fields[field_name] = Money(field_value, obj['fields'][get_currency_field_name(field_name)])
                 else:
                     fields[field_name] = field_value
