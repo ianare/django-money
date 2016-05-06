@@ -1,30 +1,25 @@
-Django-money
-------------
+Django-int-money
+----------------
 
-|Travis| |codecov.io| |PyPi|
+Fork of Django-money, which uses a different approach:
 
-.. |Travis| image:: https://travis-ci.org/django-money/django-money.svg
-   :target: https://travis-ci.org/django-money/django-money
-.. |codecov.io| image:: http://codecov.io/github/django-money/django-money/coverage.svg?branch=master
-   :target: http://codecov.io/github/django-money/django-money?branch=master
-.. |PyPi| image:: https://badge.fury.io/py/django-money.svg
-   :target: https://pypi.python.org/pypi/django-money
+- use integers to store money values (currently only supports cents).
+- stores the currency at the table level rather than field level.
 
-A little Django app that uses ``py-moneyed`` to add support for Money
-fields in your models and forms.
+This to allow more efficient storage and processing on the database.
 
-Fork of the Django support that was in
-http://code.google.com/p/python-money/
+On the other hand, this requires a little more planning ahead when designing
+the data model.
 
-This version adds tests, and comes with several critical bugfixes.
+Django versions supported: 1.7, 1.8, 1.9
 
-Django versions supported: 1.4, 1.5, 1.6, 1.7, 1.8, 1.9
+Python versions supported: 3.3, 3.4, 3.5
 
-Python versions supported: 2.6, 2.7, 3.2, 3.3, 3.4, 3.5
+PyPy versions supported: PyPy3 2.4
 
-PyPy versions supported: PyPy 2.2, PyPy3 2.4
+Yeah, that's right: no Python 2 support. Because we're living in the `__future__` ;-)
 
-Via ``py-moneyed``, ``django-money`` gets:
+Via ``py-moneyed``, ``django-int-money`` gets:
 
 -  Support for proper Money value handling (using the standard Money
    design pattern)
@@ -59,13 +54,17 @@ Use as normal model fields
 
 .. code:: python
 
-        import moneyed
         from djmoney.models.fields import MoneyIntegerField
         from django.db import models
 
         class BankAccount(models.Model):
 
-            balance = MoneyIntegerField(max_digits=10, decimal_places=2, default_currency='USD')
+            balance = MoneyIntegerField()
+
+            @staticmethod
+            def get_currency():
+                return "USD"
+
 
 Searching for models with money fields:
 
@@ -96,9 +95,8 @@ instead.
             balance = MoneyIntegerField(max_digits=10, decimal_places=2, validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
 
 
-If you use South to handle model migration, things will "Just Work" out
-of the box. South is an optional dependency and things will work fine
-without it.
+Support for Django migrations built in.
+
 
 Adding a new Currency
 ---------------------

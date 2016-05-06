@@ -24,8 +24,6 @@ from .._compat import (
     split_expression,
     string_types,
 )
-from ..settings import CURRENCY_CHOICES, DEFAULT_CURRENCY
-from ..utils import get_currency_field_name, prepare_expression
 
 
 # If django-money-rates is installed we can automatically
@@ -221,11 +219,11 @@ class MoneyFieldProxy(object):
 
     def __init__(self, field):
         self.field = field
-        self.currency_field_name = get_currency_field_name(self.field.name)
+        # self.currency_field_name = get_currency_field_name(self.field.name)
 
     def _money_from_obj(self, obj):
         amount = obj.__dict__[self.field.name]
-        currency = obj.__dict__[self.currency_field_name]
+        currency = self.field.model.get_currency()
         if amount is None:
             return None
         return MoneyPatched(amount=amount, currency=currency)
@@ -240,124 +238,77 @@ class MoneyFieldProxy(object):
         return obj.__dict__[self.field.name]
 
     def __set__(self, obj, value):  # noqa
-        if isinstance(value, BaseExpression):
-            validate_money_expression(obj, value)
-            prepare_expression(value)
-        else:
-            validate_money_value(value)
-            currency = get_currency(value)
-            if currency:
-                self.set_currency(obj, currency)
-            value = self.field.to_python(value)
+        # if isinstance(value, BaseExpression):
+        #     validate_money_expression(obj, value)
+        #     prepare_expression(value)
+        # else:
+        #     validate_money_value(value)
+        #     currency = get_currency(value)
+        #     if currency:
+        #         self.set_currency(obj, currency)
+        value = self.field.to_python(value)
         obj.__dict__[self.field.name] = value
 
-    def set_currency(self, obj, value):
-        # we have to determine whether to replace the currency.
-        # i.e. if we do the following:
-        # .objects.get_or_create(money_currency='EUR')
-        # then the currency is already set up, before this code hits
-        # __set__ of MoneyIntegerField. This is because the currency field
-        # has less creation counter than money field.
-        object_currency = obj.__dict__[self.currency_field_name]
-        default_currency = str(self.field.default_currency)
-        if object_currency != value and (object_currency == default_currency or value != default_currency):
-            # in other words, update the currency only if it wasn't
-            # changed before.
-            setattr(obj, self.currency_field_name, value)
-
-
-class CurrencyField(models.CharField):
-    description = 'A field which stores currency.'
-
-    def __init__(self, price_field=None, verbose_name=None, name=None,
-                 default=DEFAULT_CURRENCY, **kwargs):
-        if isinstance(default, Currency):
-            default = default.code
-        kwargs['max_length'] = 3
-        self.price_field = price_field
-        super(CurrencyField, self).__init__(verbose_name, name, default=default,
-                                            **kwargs)
-
-    def contribute_to_class(self, cls, name):
-        if name not in [f.name for f in cls._meta.fields]:
-            super(CurrencyField, self).contribute_to_class(cls, name)
+    # def set_currency(self, obj, value):
+    #     # we have to determine whether to replace the currency.
+    #     # i.e. if we do the following:
+    #     # .objects.get_or_create(money_currency='EUR')
+    #     # then the currency is already set up, before this code hits
+    #     # __set__ of MoneyIntegerField. This is because the currency field
+    #     # has less creation counter than money field.
+    #     object_currency = obj.__dict__[self.currency_field_name]
+    #     default_currency = str(self.field.default_currency)
+    #     if object_currency != value and (object_currency == default_currency or value != default_currency):
+    #         # in other words, update the currency only if it wasn't
+    #         # changed before.
+    #         setattr(obj, self.currency_field_name, value)
 
 
 class MoneyIntegerField(models.IntegerField):
     description = 'A field which stores both the currency and amount of money.'
 
     def __init__(self, verbose_name=None, name=None,
-                 default=None, default_currency=DEFAULT_CURRENCY,
-                 currency_choices=CURRENCY_CHOICES, **kwargs):
+                 default=None, **kwargs):
         nullable = kwargs.get('null', False)
         if default is None and not nullable:
             # Backwards compatible fix for non-nullable fields
             default = 0
 
-        if isinstance(default, string_types):
-            try:
-                # handle scenario where default is formatted like:
-                # 'amount currency-code'
-                amount, currency = default.split(' ')
-            except ValueError:
-                # value error would be risen if the default is
-                # without the currency part, i.e
-                # 'amount'
-                amount = default
-                currency = default_currency
-            default = Money(Decimal(amount), Currency(code=currency))
-        elif isinstance(default, (float, Decimal, int)):
-            default = Money(default, default_currency)
+        default = Money(default, )
 
         if not (nullable and default is None) and not isinstance(default, Money):
             raise Exception(
                 'default value must be an instance of Money, is: %s' % str(default))
 
-        if not default_currency:
-            default_currency = default.currency
-
-        self.default_currency = default_currency
-        self.currency_choices = currency_choices
-
         super(MoneyIntegerField, self).__init__(verbose_name, name, default=default, **kwargs)
 
     def to_python(self, value):
-        #if isinstance(value, Expression):
-        #    return value
+        if isinstance(value, Expression):
+            return value
         if isinstance(value, Money):
-            value = Decimal(value.amount)
+            value = value.amount
         elif isinstance(value, float):
             value = Decimal.from_float(value)
         elif isinstance(value, str):
             value = Decimal(value)
-        value = int(value) * 100
-        return super(MoneyIntegerField, self).to_python(value)
+        elif isinstance(value, int):
+            value = Decimal(value) / 100
+        return value
+        #return super(MoneyIntegerField, self).to_python(value)
 
     def contribute_to_class(self, cls, name):
-        cls._meta.has_money_field = True
-        self.add_currency_field(cls, name)
+        if not cls._meta.abstract:
+            cls._meta.has_money_field = True
         super(MoneyIntegerField, self).contribute_to_class(cls, name)
         setattr(cls, self.name, MoneyFieldProxy(self))
-
-    def add_currency_field(self, cls, name):
-        """
-        Adds CurrencyField instance to a model class.
-        """
-        currency_field = CurrencyField(
-            price_field=self,
-            default=self.default_currency, editable=False,
-            choices=self.currency_choices
-        )
-        currency_field.creation_counter = self.creation_counter
-        self.creation_counter += 1
-        currency_field_name = get_currency_field_name(name)
-        cls.add_to_class(currency_field_name, currency_field)
 
     def get_db_prep_save(self, value, connection):
         if isinstance(value, Expression):
             return value
         if isinstance(value, Money):
-            value = int((value.amount * 100) / 100)
+            value = int(value.amount * 100)
+        elif isinstance(value, int):
+            value = int(Decimal(value) * 100)
         return super(MoneyIntegerField, self).get_db_prep_save(value, connection)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, prepared=False):
@@ -390,10 +341,6 @@ class MoneyIntegerField(models.IntegerField):
 
         if self.default is not None:
             kwargs['default'] = self.default.amount
-        if self.default_currency != DEFAULT_CURRENCY:
-            kwargs['default_currency'] = str(self.default_currency)
-        if self.currency_choices != CURRENCY_CHOICES:
-            kwargs['currency_choices'] = self.currency_choices
         return name, path, args, kwargs
 
 
