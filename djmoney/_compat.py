@@ -3,11 +3,8 @@
 from django import VERSION
 
 
-try:
-    from django.db.models.constants import LOOKUP_SEP
-except ImportError:
-    # Django < 1.5
-    LOOKUP_SEP = '__'
+from django.db.models.constants import LOOKUP_SEP
+
 
 try:
     from django.db.models.expressions import BaseExpression
@@ -27,22 +24,12 @@ except ImportError:
     from django.contrib.admin.util import lookup_field
 
 try:
-    from django.utils.encoding import smart_unicode
-except ImportError:
-    # Python 3
-    from django.utils.encoding import smart_text as smart_unicode
-
-try:
     string_types = (basestring,)
 except NameError:
     string_types = (str, bytes)
 
 
-if VERSION >= (1, 7):
-    from django.utils.deconstruct import deconstructible
-else:
-    def deconstructible(cls):
-        return cls
+from django.utils.deconstruct import deconstructible
 
 
 def split_expression(expr):

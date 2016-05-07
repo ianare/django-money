@@ -29,13 +29,13 @@ Via ``py-moneyed``, ``django-int-money`` gets:
 Installation
 ------------
 
-Django-money currently needs ``py-moneyed`` v0.4 (or later) to work.
+Django-int-money currently needs ``py-moneyed`` v0.4 (or later) to work.
 
 You can obtain the source code for ``django-money`` from here:
 
 ::
 
-    https://github.com/django-money/django-money
+    https://github.com/ianare/django-int-money
 
 And the source for ``py-moneyed`` from here:
 
@@ -45,7 +45,7 @@ And the source for ``py-moneyed`` from here:
 
 Using `pip`:
 
-    pip install py-moneyed django-money
+    pip install py-moneyed django-int-money
 
 Model usage
 -----------
@@ -54,7 +54,7 @@ Use as normal model fields
 
 .. code:: python
 
-        from djmoney.models.fields import MoneyIntegerField
+        from dj_intmoney.models.fields import MoneyIntegerField
         from django.db import models
 
         class BankAccount(models.Model):
@@ -88,11 +88,11 @@ instead.
 
         from django.core.validators import MinValueValidator
         from django.db import models
-        from djmoney.models.fields import MoneyIntegerField, MoneyPatched
+        from dj_intmoney.models.fields import MoneyIntegerField, MoneyPatched
 
         class BankAccount(models.Model):
 
-            balance = MoneyIntegerField(max_digits=10, decimal_places=2, validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
+            balance = MoneyIntegerField(validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
 
 
 Support for Django migrations built in.
@@ -190,17 +190,17 @@ will be used default formatting.
 In the templates you can use a special tag to format the money.
 
 In the file ``settings.py`` add to ``INSTALLED_APPS`` entry from the
-library ``djmoney``:
+library ``dj_intmoney``:
 
 .. code:: python
 
-        INSTALLED_APPS += ( 'djmoney', )
+        INSTALLED_APPS += ( 'dj_intmoney', )
 
 In the template, add:
 
 ::
 
-        {% load djmoney %}
+        {% load dj_intmoney %}
         ...
         {% money_localize money %}
 
@@ -247,7 +247,7 @@ Install the required packages:
 
 ::
 
-    git clone https://github.com/django-money/django-money
+    git clone https://github.com/ianare/django-int-money
 
     cd ./django-money/
 

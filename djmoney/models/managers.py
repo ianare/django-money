@@ -6,10 +6,11 @@ from django.db.models import F
 from django.db.models.query_utils import Q
 from django.db.models.sql.constants import QUERY_TERMS
 from django.db.models.sql.query import Query
+from django.utils.encoding import smart_text
 
 from moneyed import Money
 
-from .._compat import LOOKUP_SEP, BaseExpression, smart_unicode
+from .._compat import LOOKUP_SEP, BaseExpression
 from ..utils import get_currency_field_name, prepare_expression
 from .fields import MoneyIntegerField
 
@@ -80,7 +81,7 @@ def _expand_money_args(model, args):
                         clean_name = _get_clean_name(name)
                         arg.children[i] = Q(*[
                             child,
-                            (get_currency_field_name(clean_name), smart_unicode(value.currency))
+                            (get_currency_field_name(clean_name), smart_text(value.currency))
                         ])
                     if isinstance(value, (BaseExpression, F)):
                         field = _get_field(model, name)
@@ -101,7 +102,7 @@ def _expand_money_kwargs(model, kwargs):
         if isinstance(value, Money):
             clean_name = _get_clean_name(name)
             kwargs[name] = value.amount
-            kwargs[get_currency_field_name(clean_name)] = smart_unicode(value.currency)
+            kwargs[get_currency_field_name(clean_name)] = smart_text(value.currency)
         elif isinstance(value, (BaseExpression, F)) and \
                 isinstance(_get_field(model, name), MoneyIntegerField):
             clean_name = _get_clean_name(name)

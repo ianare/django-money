@@ -6,8 +6,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.fields.related import ManyToManyRel
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
+from django.utils.encoding import smart_text
 
-from ._compat import lookup_field, smart_unicode
+from ._compat import lookup_field
 
 
 def get_empty_value_display(cls):
@@ -34,7 +35,7 @@ def djmoney_contents(self):
             if boolean:
                 result_repr = _boolean_icon(value)
             else:
-                result_repr = smart_unicode(value)
+                result_repr = smart_text(value)
                 if getattr(attr, 'allow_tags', False):
                     result_repr = mark_safe(result_repr)
         else:
@@ -43,7 +44,7 @@ def djmoney_contents(self):
             elif isinstance(f.rel, ManyToManyRel):
                 result_repr = ', '.join(map(str, value.all()))
             else:
-                result_repr = smart_unicode(value)
+                result_repr = smart_text(value)
     return conditional_escape(result_repr)
 
 

@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models import F
 from django.db.models.signals import class_prepared
 from django.utils import translation
+from django.utils.encoding import smart_text
 
 from moneyed import Currency, Money
 from moneyed.localization import _FORMATTER, format_money
@@ -20,7 +21,6 @@ from .._compat import (
     BaseExpression,
     Expression,
     deconstructible,
-    smart_unicode,
     split_expression,
     string_types,
 )
@@ -143,15 +143,13 @@ class MoneyPatched(Money):
             return settings.USE_L10N
         return self.use_l10n
 
-    def __unicode__(self):
+    def __str__(self):
         if self.__use_l10n():
             locale = self.__get_current_locale()
             if locale:
                 return format_money(self, locale=locale)
 
         return format_money(self)
-
-    __str__ = __unicode__
 
     def __repr__(self):
         return '%s %s' % (self.amount.to_integral_value(ROUND_DOWN), self.currency)
@@ -210,7 +208,7 @@ def get_currency(value):
     Extracts currency from value.
     """
     if isinstance(value, Money):
-        return smart_unicode(value.currency)
+        return smart_text(value.currency)
     elif isinstance(value, (list, tuple)):
         return value[1]
 
@@ -219,7 +217,6 @@ class MoneyFieldProxy(object):
 
     def __init__(self, field):
         self.field = field
-        # self.currency_field_name = get_currency_field_name(self.field.name)
 
     def _money_from_obj(self, obj):
         amount = obj.__dict__[self.field.name]
@@ -248,20 +245,6 @@ class MoneyFieldProxy(object):
         #         self.set_currency(obj, currency)
         value = self.field.to_python(value)
         obj.__dict__[self.field.name] = value
-
-    # def set_currency(self, obj, value):
-    #     # we have to determine whether to replace the currency.
-    #     # i.e. if we do the following:
-    #     # .objects.get_or_create(money_currency='EUR')
-    #     # then the currency is already set up, before this code hits
-    #     # __set__ of MoneyIntegerField. This is because the currency field
-    #     # has less creation counter than money field.
-    #     object_currency = obj.__dict__[self.currency_field_name]
-    #     default_currency = str(self.field.default_currency)
-    #     if object_currency != value and (object_currency == default_currency or value != default_currency):
-    #         # in other words, update the currency only if it wasn't
-    #         # changed before.
-    #         setattr(obj, self.currency_field_name, value)
 
 
 class MoneyIntegerField(models.IntegerField):
@@ -328,11 +311,10 @@ class MoneyIntegerField(models.IntegerField):
     def formfield(self, **kwargs):
         defaults = {'form_class': forms.MoneyField}
         defaults.update(kwargs)
-        defaults['currency_choices'] = self.currency_choices
         return super(MoneyIntegerField, self).formfield(**defaults)
 
     def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
+        value = int(self._get_val_from_obj(obj).amount * 100)
         return self.get_prep_value(value)
 
     # Django 1.7 migration support
