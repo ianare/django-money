@@ -1,23 +1,47 @@
 Django-int-money
-----------------
+================
 
-Fork of Django-money, which uses a different approach:
+Rewrite/Fork of Django-money, with some key differences:
 
-- use integers to store money values (currently only supports cents).
-- stores the currency at the table level rather than field level.
+- simplified code base
+- store money amounts as integers
+- store currency information in a table rather than a field
 
-This to allow more efficient storage and processing on the database.
+Rationale
+---------
+Storing money values as integers in the database has several advantages:
+
+- takes up less space in the database
+- avoids any issues with rounding or conversion errors compared to floats
+  (don't use floats for money values, **ever**!)
+- allows using the datbase to perform SUMs, AVGs, etc more efficiently compared to NUMERIC / DECIMAL types
+- easier to import or export data to other systems
+
+Storing the currency information at the table level has several advantages:
+
+- takes up less space in the database: not needing a char(3) field for every amount to be stored
+  can have a significant impact. Consider a table with 5 money fields containing a million entries,
+  that's about a 20 Mb difference.
+- from a data modeling perspective, it's best to completely separate different currency types.
+  There's no valid reason to ever do calculations on different currencies.
 
 On the other hand, this requires a little more planning ahead when designing
-the data model.
+the data model, since adding a currency to the application requires adding a
+table.
 
-Django versions supported: 1.7, 1.8, 1.9
+To alleviate this problem, table inheritence is used to avoid needless repetition.
 
-Python versions supported: 3.3, 3.4, 3.5
 
-PyPy versions supported: PyPy3 2.4
+Requirements
+------------
+Django versions: 1.7, 1.8, 1.9
 
-Yeah, that's right: no Python 2 support. Because we're living in the `__future__` ;-)
+Python versions: 3.3, 3.4, 3.5
+
+PyPy versions: PyPy3 2.4
+
+Yeah, that's right: there's no official Python 2 support.
+We are now living in the ``__future__`` ;-)
 
 Via ``py-moneyed``, ``django-int-money`` gets:
 
@@ -26,12 +50,13 @@ Via ``py-moneyed``, ``django-int-money`` gets:
 -  A currency class and definitions for all currencies in circulation
 -  Formatting of most currencies with correct currency sign
 
+
 Installation
 ------------
 
 Django-int-money currently needs ``py-moneyed`` v0.4 (or later) to work.
 
-You can obtain the source code for ``django-money`` from here:
+You can obtain the source code for ``django-int-money`` from here:
 
 ::
 
@@ -47,7 +72,7 @@ Using `pip`:
 
     pip install py-moneyed django-int-money
 
-Model usage
+Model Usage
 -----------
 
 Use as normal model fields
@@ -57,7 +82,7 @@ Use as normal model fields
         from dj_intmoney.models.fields import MoneyIntegerField
         from django.db import models
 
-        class BankAccount(models.Model):
+        class BankAccountUSD(models.Model):
 
             balance = MoneyIntegerField()
 
@@ -66,33 +91,13 @@ Use as normal model fields
                 return "USD"
 
 
-Searching for models with money fields:
+        class BankAccountEUR(models.Model):
 
-.. code:: python
+            balance = MoneyIntegerField()
 
-        from moneyed import Money, USD, CHF
-        account = BankAccount(balance=Money(10, USD))
-        swissAccount = BankAccount(balance=Money(10, CHF))
-
-        account.save()
-        swissAccount.save()
-
-        BankAccount.objects.filter(balance__gt=Money(1, USD))
-        # Returns the "account" object
-
-Special note on serialized arguments: if your model definition 
-requires serializing an instance of ``Money``, you can use ``MoneyPatched``
-instead.
-
-.. code:: python
-
-        from django.core.validators import MinValueValidator
-        from django.db import models
-        from dj_intmoney.models.fields import MoneyIntegerField, MoneyPatched
-
-        class BankAccount(models.Model):
-
-            balance = MoneyIntegerField(validators=[MinValueValidator(MoneyPatched(100, 'GBP'))])
+            @staticmethod
+            def get_currency():
+                return "EUR"
 
 
 Support for Django migrations built in.
@@ -134,14 +139,6 @@ this two lines on your ``settings.py`` file
             negative_sign="-", trailing_negative_sign="",
             rounding_method=ROUND_HALF_EVEN)
 
-To restrict the currencies listed on the project set a ``CURRENCIES``
-variable with a list of Currency codes on ``settings.py``
-
-.. code:: python
-
-        CURRENCIES = ('USD', 'BOB')
-
-**The list has to contain valid Currency codes**
 
 Important note on model managers
 --------------------------------

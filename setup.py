@@ -38,13 +38,13 @@ setup(
     version='0.0.1',
     description='Adds support for using integer money fields in django models and forms. '
                 'Uses py-moneyed as the money implementation.',
-    url='https://github.com/django-money/django-money',
+    url='https://github.com/ianare/django-int-money',
     maintainer='Ianaré Sévi',
     packages=[
-        'djmoney',
-        'djmoney.forms',
-        'djmoney.models',
-        'djmoney.templatetags',
+        'dj_intmoney',
+        'dj_intmoney.forms',
+        'dj_intmoney.models',
+        'dj_intmoney.templatetags',
     ],
     install_requires=[
         'setuptools',

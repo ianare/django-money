@@ -15,7 +15,7 @@ from django.utils.encoding import smart_text
 from moneyed import Currency, Money
 from moneyed.localization import _FORMATTER, format_money
 
-from djmoney import forms
+from .. import forms
 
 from .._compat import (
     BaseExpression,

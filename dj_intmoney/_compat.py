@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 # flake8: noqa
 from django import VERSION
-
-
 from django.db.models.constants import LOOKUP_SEP
-
 
 try:
     from django.db.models.expressions import BaseExpression
